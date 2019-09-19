@@ -1,0 +1,5 @@
+name = Docusign Button
+description = Docusign button for eSignatures
+package = Custom
+core = 7.x
+files[] = docusign_button.module

@@ -1,0 +1,86 @@
+<?php
+
+/**
+ * @file
+ * Docusign button module.
+ */
+function get_url_signing_ceremony() {
+    global $user;
+    $username = $user->name;
+    $email = $user->mail;
+
+    // call API Docus in testdocus.000webhostapp.com
+    $data = array('name' => $username, 'email' => $email);
+    $options = array(
+        'method' => 'GET',
+        'data' => http_build_query($data),
+        'timeout' => 15,
+    );
+    $parameters = http_build_query($data);
+    $urlRequest = 'https://testdocus.000webhostapp.com/embed-signing-ceremony.php?' . $parameters;
+
+    // Request a Session URL
+    $responseApi = drupal_http_request($urlRequest, $options);
+    if ($responseApi->code == 200) {
+        $data = json_decode($responseApi->data, true);
+        $url = $data["sessionUrl"];
+    }
+    return $url;
+}
+
+;
+
+/**
+ * Implements hook_block_info().
+ */
+function docusign_button_block_info() {
+    $blocks = array();
+    $blocks['docus'] = array(
+        'info' => t('DocuSign button'),
+    );
+    return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function docusign_button_block_view($delta = '') {
+    $block = array();
+
+    if ($delta == 'docus') {
+        $nid = "0";
+        if (arg(0) == 'node' && is_numeric(arg(1))) {
+            $nid = arg(1);
+            $node = node_load($nid);
+            $current_status = workflow_node_current_state($node);
+
+            if ($node->type == '[your_node_type]' && $current_status == '[your_completed_status]') {
+                $redirectUrl = get_url_signing_ceremony();
+                $block['content'] = theme(
+                        'docusign_button',
+                        array(
+                            'nid' => $nid,
+                            'url' => $redirectUrl
+                        )
+                );
+            }
+        }
+    }
+    return $block;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function docusign_button_theme() {
+    return array(
+        'docusign_button' => array(
+            'template' => 'docusign-button',
+            'path' => drupal_get_path('module', 'docusign_button') . '/templates',
+            'variables' => array(
+                "nid" => 0,
+                "url" => ''
+            )
+        )
+    );
+}
